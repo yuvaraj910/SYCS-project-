@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student CGPA & SGPA Calculator</title>
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F3F4F6;
+            --container-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --border-color: #D1D5DB;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            background-color: var(--container-bg);
+            width: 100%;
+            max-width: 800px;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #F9FAFB;
+            font-weight: 600;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            outline: none;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            border-color: var(--primary-color);
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .btn-add {
+            background-color: #10B981;
+            color: white;
+        }
+        
+        .btn-add:hover { background-color: #059669; }
+
+        .btn-remove {
+            background-color: #EF4444;
+            color: white;
+            padding: 6px 12px;
+        }
+
+        .btn-remove:hover { background-color: #DC2626; }
+
+        .btn-calc {
+            background-color: var(--primary-color);
+            color: white;
+            width: 100%;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+        }
+
+        .btn-calc:hover { background-color: var(--primary-hover); }
+
+        .results {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #EEF2FF;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #C7D2FE;
+        }
+
+        .results h2 {
+            font-size: 2rem;
+            color: var(--primary-hover);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>CGPA & SGPA Calculator</h1>
+        
+        <div class="controls">
+            <button class="btn-add" onclick="addRow()">+ Add Subject</button>
+            <button class="btn-add" style="background-color: #6B7280;" onclick="clearData()">Clear Data</button>
+        </div>
+
+        <table id="subjectTable">
+            <thead>
+                <tr>
+                    <th>Subject Name</th>
+                    <th>Credits</th>
+                    <th>Grade</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Rows will be generated here by JavaScript -->
+            </tbody>
+        </table>
+
+        <button class="btn-calc" onclick="calculateGPA()">Calculate SGPA</button>
+
+        <div class="results" id="resultContainer" style="display: none;">
+            <h3>Your Semester GPA (SGPA) is:</h3>
+            <h2 id="sgpaResult">0.00</h2>
+            <p id="totalCreditsDisplay" style="margin-top: 10px; color: #4B5563;"></p>
+        </div>
+    </div>
+
+    <script>
+        // Standard 10-point grading scale mapping
+        const gradePoints = {
+            'O': 10,  // Outstanding
+            'A+': 9,  // Excellent
+            'A': 8,   // Very Good
+            'B+': 7,  // Good
+            'B': 6,   // Above Average
+            'C': 5,   // Average
+            'P': 4,   // Pass
+            'F': 0    // Fail
+        };
+
+        // Initialize table on page load
+        document.addEventListener("DOMContentLoaded", () => {
+            loadSavedData();
+        });
+
+        function createRowHTML(name = '', credits = '', grade = 'O') {
+            const tr = document.createElement('tr');
+            
+            // Build the options string with the selected grade
+            let optionsHTML = '';
+            for (let g in gradePoints) {
+                optionsHTML += `<option value="${g}" ${grade === g ? 'selected' : ''}>${g} (${gradePoints[g]} Pts)</option>`;
+            }
+
+            tr.innerHTML = `
+                <td><input type="text" placeholder="e.g. Data Structures" value="${name}" class="sub-name"></td>
+                <td><input type="number" placeholder="Credits (e.g. 3)" value="${credits}" min="1" class="sub-credit"></td>
+                <td>
+                    <select class="sub-grade">
+                        ${optionsHTML}
+                    </select>
+                </td>
+                <td><button class="btn-remove" onclick="removeRow(this)">X</button></td>
+            `;
+            return tr;
+        }
+
+        function addRow() {
+            const tbody = document.getElementById('tableBody');
+            tbody.appendChild(createRowHTML());
+            saveData();
+        }
+
+        function removeRow(button) {
+            const row = button.parentElement.parentElement;
+            row.remove();
+            saveData();
+        }
+
+        function calculateGPA() {
+            const rows = document.querySelectorAll('#tableBody tr');
+            let totalCredits = 0;
+            let totalGradePoints = 0;
+            let valid = true;
+
+            rows.forEach(row => {
+                const creditInput = row.querySelector('.sub-credit').value;
+                const gradeInput = row.querySelector('.sub-grade').value;
+
+                if (creditInput === '' || creditInput <= 0) {
+                    valid = false;
+                    row.querySelector('.sub-credit').style.borderColor = 'red';
+                } else {
+                    row.querySelector('.sub-credit').style.borderColor = 'var(--border-color)';
+                    const credits = parseFloat(creditInput);
+                    const points = gradePoints[gradeInput];
+
+                    totalCredits += credits;
+                    totalGradePoints += (credits * points);
+                }
+            });
+
+            if (!valid || rows.length === 0) {
+                alert("Please enter valid credits for all subjects.");
+                return;
+            }
+
+            const sgpa = (totalGradePoints / totalCredits).toFixed(2);
+            
+            document.getElementById('resultContainer').style.display = 'block';
+            document.getElementById('sgpaResult').innerText = sgpa;
+            document.getElementById('totalCreditsDisplay').innerText = `Total Credits Calculated: ${totalCredits}`;
+            
+            saveData();
+        }
+
+        function saveData() {
+            const rows = document.querySelectorAll('#tableBody tr');
+            const data = [];
+            
+            rows.forEach(row => {
+                data.push({
+                    name: row.querySelector('.sub-name').value,
+                    credits: row.querySelector('.sub-credit').value,
+                    grade: row.querySelector('.sub-grade').value
+                });
+            });
+
+            localStorage.setItem('cgpaCalculatorData', JSON.stringify(data));
+        }
+
+        function loadSavedData() {
+            const savedData = localStorage.getItem('cgpaCalculatorData');
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = ''; // Clear existing
+
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                if (parsedData.length > 0) {
+                    parsedData.forEach(item => {
+                        tbody.appendChild(createRowHTML(item.name, item.credits, item.grade));
+                    });
+                    return;
+                }
+            }
+            
+            // Default empty rows if no data saved
+            for(let i=0; i<4; i++) {
+                addRow();
+            }
+        }
+
+        function clearData() {
+            if(confirm("Are you sure you want to clear all subjects?")) {
+                localStorage.removeItem('cgpaCalculatorData');
+                document.getElementById('resultContainer').style.display = 'none';
+                loadSavedData();
+            }
+        }
+
+        // Auto-save when user types
+        document.getElementById('tableBody').addEventListener('input', saveData);
+        document.getElementById('tableBody').addEventListener('change', saveData);
+    </script>
+</body>
+</html> 
